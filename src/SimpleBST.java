@@ -7,7 +7,7 @@ import java.util.function.BiConsumer;
 /**
  * A simple implementation of binary search trees.
  */
-public class SimpleBST<K,V> implements SimpleMap<K,V> {
+public class SimpleBST<K, V> implements SimpleMap<K, V> {
 
   // +--------+------------------------------------------------------
   // | Fields |
@@ -16,7 +16,7 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
   /**
    * The root of our tree. Initialized to null for an empty tree.
    */
-  BSTNode<K,V> root;
+  BSTNode<K, V> root;
 
   /**
    * The comparator used to determine the ordering in the tree.
@@ -27,7 +27,7 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
    * The size of the tree.
    */
   int size;
-  
+
   /**
    * A cached value (useful in some circumstances.
    */
@@ -38,7 +38,7 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
   // +--------------+
 
   /**
-   * Create a new binary search tree that orders values using the 
+   * Create a new binary search tree that orders values using the
    * specified comparator.
    */
   public SimpleBST(Comparator<? super K> comparator) {
@@ -49,13 +49,12 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
   } // SimpleBST(Comparator<K>)
 
   /**
-   * Create a new binary search tree that orders values using a 
+   * Create a new binary search tree that orders values using a
    * not-very-clever default comparator.
    */
   public SimpleBST() {
     this((k1, k2) -> k1.toString().compareTo(k2.toString()));
   } // SimpleBST()
-
 
   // +-------------------+-------------------------------------------
   // | SimpleMap methods |
@@ -63,20 +62,28 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
 
   public BSTNode<K, V> setHelper(BSTNode<K, V> node, K key, V value) {
     if (node == null) {
-      node.right = new BSTNode<K, V>(key, value);
+      this.cachedValue = null;
+      this.size++;
+      return new BSTNode<K, V>(key, value);
     } else {
-      if (this.comparator.compare(key, node.key) < 0) {
+      if (this.comparator.compare(key, node.key) == 0) {
+        this.cachedValue = node.value;
+        node.value = value;
+        return node;
+      } else if (this.comparator.compare(key, node.key) < 0) {
         node.left = setHelper(node.left, key, value);
-      } else if (this.comparator.compare(key, node.key) > 0) {
+        return node;
+      } else {
         node.right = setHelper(node.right, key, value);
+        return node;
       }
     }
-    return node;
-  }
+  }// setHelper()
 
   @Override
   public V set(K key, V value) {
-    return null;        // STUB
+    this.root = setHelper(root, key, value);
+    return this.cachedValue;
   } // set(K,V)
 
   @Override
@@ -89,23 +96,63 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
 
   @Override
   public int size() {
-    return 0;           // STUB
+    return this.size;
   } // size()
 
   @Override
   public boolean containsKey(K key) {
-    return false;       // STUB
+    return false; // STUB
   } // containsKey(K)
 
   @Override
   public V remove(K key) {
-    return null;        // STUB
+    this.root = removeHelper(root, key);
+    return cachedValue;
   } // remove(K)
+
+  public BSTNode<K, V> removeHelper(BSTNode<K, V> node, K key) {
+    if (node == null) {
+      this.cachedValue = null;
+      return null;
+    } else {
+      this.cachedValue = node.value;
+      if (this.comparator.compare(key, node.key) == 0) {
+        if (node.left == null && node.right == null) {
+          return null;
+        } else if (node.left == null) {
+          return node.right;
+        } else if (node.right == null) {
+          return node.left;
+        } else {
+          BSTNode<K, V> temp = node.right;
+          BSTNode<K, V> position;
+          
+          node = node.left;
+          position = node.right;
+
+          //find the far right end of the left subtree
+          if (position != null) {
+            while (position != null) {
+              position = position.right;
+            }
+          }
+          position = temp;
+
+        }
+
+      } else if (this.comparator.compare(key, node.key) < 0) {
+        node.left = removeHelper(node.left, key);
+      } else {
+        node.right = removeHelper(node.right, key);
+      }
+      return node;
+    }
+  }
 
   @Override
   public Iterator<K> keys() {
     return new Iterator<K>() {
-      Iterator<BSTNode<K,V>> nit = SimpleBST.this.nodes();
+      Iterator<BSTNode<K, V>> nit = SimpleBST.this.nodes();
 
       @Override
       public boolean hasNext() {
@@ -127,7 +174,7 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
   @Override
   public Iterator<V> values() {
     return new Iterator<V>() {
-      Iterator<BSTNode<K,V>> nit = SimpleBST.this.nodes();
+      Iterator<BSTNode<K, V>> nit = SimpleBST.this.nodes();
 
       @Override
       public boolean hasNext() {
@@ -148,8 +195,19 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
 
   @Override
   public void forEach(BiConsumer<? super K, ? super V> action) {
-    // STUB
+    forEachHelper(action, root);
   } // forEach
+
+  public void forEachHelper(BiConsumer<? super K, ? super V> action, BSTNode<K, V> node) {
+    if (node == null) {
+      return;
+    } else {
+      action.accept(node.key, node.value);
+      forEachHelper(action, node.left);
+      forEachHelper(action, node.right);
+    }
+
+  }// forEachHelper
 
   // +----------------------+----------------------------------------
   // | Other public methods |
@@ -162,7 +220,6 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
     dump(pen, root, "");
   } // dump(PrintWriter)
 
-
   // +---------+-----------------------------------------------------
   // | Helpers |
   // +---------+
@@ -170,7 +227,7 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
   /**
    * Dump a portion of the tree to some output location.
    */
-  void dump(PrintWriter pen, BSTNode<K,V> node, String indent) {
+  void dump(PrintWriter pen, BSTNode<K, V> node, String indent) {
     if (node == null) {
       pen.println(indent + "<>");
     } else {
@@ -181,12 +238,12 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
       } // if has children
     } // else
   } // dump
-  
+
   /**
-   * Get the value associated with a key in a subtree rooted at node.  See the
+   * Get the value associated with a key in a subtree rooted at node. See the
    * top-level get for more details.
    */
-  V get(K key, BSTNode<K,V> node) {
+  V get(K key, BSTNode<K, V> node) {
     if (node == null) {
       throw new IndexOutOfBoundsException("Invalid key: " + key);
     }
@@ -201,13 +258,13 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
   } // get(K, BSTNode<K,V>)
 
   /**
-   * Get an iterator for all of the nodes. (Useful for implementing the 
+   * Get an iterator for all of the nodes. (Useful for implementing the
    * other iterators.)
    */
-  Iterator<BSTNode<K,V>> nodes() {
-    return new Iterator<BSTNode<K,V>>() {
+  Iterator<BSTNode<K, V>> nodes() {
+    return new Iterator<BSTNode<K, V>>() {
 
-      Stack<BSTNode<K,V>> stack = new Stack<BSTNode<K,V>>();
+      Stack<BSTNode<K, V>> stack = new Stack<BSTNode<K, V>>();
       boolean initialized = false;
 
       @Override
@@ -217,7 +274,7 @@ public class SimpleBST<K,V> implements SimpleMap<K,V> {
       } // hasNext()
 
       @Override
-      public BSTNode<K,V> next() {
+      public BSTNode<K, V> next() {
         checkInit();
         // TODO Auto-generated method stub
         return null;
